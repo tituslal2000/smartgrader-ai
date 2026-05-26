@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartGrader AI - Intelligent Handwritten Work Grader</title>
+  
+  <!-- CSS Styles -->
+  <link rel="stylesheet" href="styles.css?v=1.2">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ==========================================
+         SIDEBAR NAVIGATION
+         ========================================== -->
+    <aside class="app-sidebar">
+      <a href="#" class="sidebar-logo">
+        <div class="logo-icon">S</div>
+        <span class="logo-text">SmartGrader<span style="color:var(--accent-cyan)">.ai</span></span>
+      </a>
+      
+      <ul class="sidebar-menu">
+        <li class="menu-item active" data-page="dashboard">
+          <a href="#">
+            <i class="fas fa-chart-pie"></i>
+            <span class="menu-item-text">Dashboard</span>
+          </a>
+        </li>
+        <li class="menu-item" data-page="roster">
+          <a href="#">
+            <i class="fas fa-users"></i>
+            <span class="menu-item-text">Student Papers</span>
+          </a>
+        </li>
+        <li class="menu-item" data-page="rubrics">
+          <a href="#">
+            <i class="fas fa-tasks"></i>
+            <span class="menu-item-text">Grading Rubrics</span>
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="user-profile" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div class="user-avatar" id="sidebar-avatar" style="width:36px; height:36px; font-size:0.8rem;">TR</div>
+            <div class="user-info">
+              <div class="user-name" id="sidebar-user-name" style="font-size:0.8rem; font-weight:600;">Prof. T. Robertson</div>
+              <div class="user-role" id="sidebar-user-role" style="font-size:0.7rem;">Biology Coordinator</div>
+            </div>
+          </div>
+          <button id="btn-logout" class="tool-btn" style="width:30px; height:30px; border-radius:50%; margin-left:0.5rem; font-size:0.8rem; border-color:rgba(239,68,68,0.2); color:var(--danger); background:rgba(239,68,68,0.03);" title="Log out session">
+            <i class="fas fa-power-off"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN CONTENT SPA VIEWS
+         ========================================== -->
+    <main class="main-content">
+      
+      <!-- 1. DASHBOARD PAGE VIEW -->
+      <section id="dashboard-page" class="page-section">
+        <div class="page-header">
+          <div class="page-title">
+            <h1>Teacher Dashboard</h1>
+            <p>Welcome back, Prof. Robertson. Here is your grading progress.</p>
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="document.getElementById('hidden-file-input').click()">
+              <i class="fas fa-cloud-upload-alt"></i> Scan Exam Paper
+            </button>
+          </div>
+        </div>
+        
+        <!-- Analytics Stat Cards -->
+        <div class="analytics-grid">
+          <div class="glass-panel stat-card success">
+            <div class="stat-icon"><i class="fas fa-check-double"></i></div>
+            <div class="stat-label">Graded Papers</div>
+            <div class="stat-value" id="stat-graded">2</div>
+            <div class="stat-change up"><i class="fas fa-arrow-up"></i> +1 today</div>
+          </div>
+          <div class="glass-panel stat-card warning">
+            <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+            <div class="stat-label">Class Average</div>
+            <div class="stat-value" id="stat-average">83%</div>
+            <div class="stat-change up"><i class="fas fa-arrow-up"></i> +2% vs last term</div>
+          </div>
+          <div class="glass-panel stat-card cyan">
+            <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="stat-label">AI Grading Time Saved</div>
+            <div class="stat-value" id="stat-time">0.7 hrs</div>
+            <div class="stat-change up"><i class="fas fa-bolt"></i> Instant marks</div>
+          </div>
+          <div class="glass-panel stat-card">
+            <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+            <div class="stat-label">Total Submissions</div>
+            <div class="stat-value" id="stat-papers">3</div>
+            <div class="stat-change"><i class="fas fa-sync"></i> Auto-synced</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Content grid -->
+        <div class="dashboard-grid">
+          
+          <!-- Grade distribution chart -->
+          <div class="glass-panel chart-panel">
+            <div class="chart-header">
+              <h3 style="color:var(--text-primary);">Grade Letter Distribution</h3>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Current graded roster statistics</p>
+            </div>
+            <div class="chart-container">
+              <canvas id="grade-distribution-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Recent student papers -->
+          <div class="glass-panel recent-papers-panel">
+            <div class="section-header">
+              <h3 style="font-size:1.1rem; color:var(--text-primary)">Recent Submissions</h3>
+              <a href="#" class="btn btn-secondary btn-sm" onclick="window.app.ui.navigateTo('roster')">See All</a>
+            </div>
+            <div class="table-container" style="flex:1;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="recent-papers-tbody">
+                  <!-- Recent papers populates in runtime -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Simulated scanner drag uploader -->
+        <div class="glass-panel uploader-card" id="upload-card">
+          <div class="upload-icon"><i class="fas fa-copy"></i></div>
+          <div>
+            <h3 style="font-size:1.2rem; color:var(--text-primary); margin-bottom:0.25rem;">Scan &amp; Upload Student Exam Paper</h3>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">Supports PDF scans, JPG, PNG high resolution handwritten papers</p>
+          </div>
+          <button class="btn btn-secondary btn-sm">Browse Local Files</button>
+          <input type="file" id="hidden-file-input" class="file-input-hidden" accept="image/*,application/pdf">
+        </div>
+      </section>
+
+      <!-- 2. ROSTER PAGE VIEW -->
+      <section id="roster-page" class="page-section" style="display:none;">
+        <div class="page-header">
+          <div class="page-title">
+            <h1>Student Exam Papers</h1>
+            <p>Select a student to manually grade or launch the visual AI Copilot marker.</p>
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="document.getElementById('hidden-file-input').click()">
+              <i class="fas fa-plus"></i> Upload New Paper
+            </button>
+          </div>
+        </div>
+
+        <!-- Subject Folder Navigation -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; gap:1rem; flex-wrap:wrap;">
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap;" id="subject-folder-tabs">
+            <!-- Populates dynamically in runtime -->
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" id="btn-create-folder" style="height:38px;">
+              <i class="fas fa-folder-plus"></i> Create Subject Folder
+            </button>
+          </div>
+        </div>
+
+        <!-- Roster glass card table -->
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Exam/Rubric</th>
+                  <th>Grading Status</th>
+                  <th>Score Tally</th>
+                  <th>Percentage</th>
+                  <th>Grade</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="roster-tbody">
+                <!-- Roster populates dynamically in runtime -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. VISUAL GRADING BOARD PAGE VIEW -->
+      <section id="grading-page" class="page-section" style="display:none;">
+        <div class="page-header">
+          <div class="page-title">
+            <h1 id="grader-student-name">Alex Rivera</h1>
+            <p id="grader-exam-title">Biology 101 - Cell Energetics &amp; Division</p>
+          </div>
+          <div style="display:flex; gap:1rem;">
+            <button class="btn btn-secondary" onclick="window.app.ui.navigateTo('roster')">
+              <i class="fas fa-arrow-left"></i> Back to Roster
+            </button>
+            <button class="btn btn-outline-success" id="btn-export">
+              <i class="fas fa-file-pdf"></i> Export Mark Sheet
+            </button>
+          </div>
+        </div>
+
+        <div class="grader-container">
+          
+          <!-- Visual canvas grading panel -->
+          <div class="canvas-wrapper">
+            <div class="glass-panel canvas-toolbar">
+              <div class="canvas-tools">
+                <button class="tool-btn active" id="tool-select" title="Selection Tool / Add Bounding Box"><i class="fas fa-mouse-pointer"></i></button>
+                <button class="tool-btn" id="tool-pen" title="Red Pen Drawing Markup"><i class="fas fa-pen"></i></button>
+                <button class="tool-btn" id="tool-clear" title="Clear All Red Ink Drawing"><i class="fas fa-trash-alt"></i></button>
+              </div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">
+                <i class="fas fa-info-circle"></i> Double click paper to draw a new bounding box. Click boxes to grade.
+              </div>
+            </div>
+
+            <!-- Crisp visual paper viewer -->
+            <div class="glass-panel paper-viewer">
+              <div class="paper-container" id="paper-container">
+                <!-- Ruled background template loaded as SVG data URL -->
+                <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1100' viewBox='0 0 800 1100'><rect width='800' height='1100' fill='%23fafaf9'/><line x1='120' y1='0' x2='120' y2='1100' stroke='%23fca5a5' stroke-width='2'/><!-- Ruled notebook lines -->${Array.from({length:34}, (_,i) => `<line x1='0' y1='${100+i*28}' x2='800' y2='${100+i*28}' stroke='%23e2e8f0' stroke-width='1'/>`).join('')}<!-- Questions printed --><text x='140' y='140' font-family='Plus Jakarta Sans, sans-serif' font-size='14' font-weight='700' fill='%231e293b'>Q1. Explain the process of photosynthesis and list the main components involved. (5 Marks)</text><text x='140' y='385' font-family='Plus Jakarta Sans, sans-serif' font-size='14' font-weight='700' fill='%231e293b'>Q2. Briefly describe what occurs during mitosis and name its four main stages. (5 Marks)</text><text x='140' y='630' font-family='Plus Jakarta Sans, sans-serif' font-size='14' font-weight='700' fill='%231e293b'>Q3. What is cellular respiration, where does it occur, and what is its primary energy product? (5 Marks)</text></svg>" class="student-paper-image" id="student-paper-image">
+                
+                <!-- Dynamic Blue-Ink Handwritten Answer Overlays -->
+                <div id="handwritten-answers-layer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:2;"></div>
+                
+                <!-- Interaction coordinate canvas vector layer -->
+                <div class="paper-vector-overlay" id="paper-vector-overlay" style="z-index:3;"></div>
+                
+                <!-- Red Ink Annotation Canvas layer -->
+                <canvas class="draw-canvas" id="draw-canvas" style="z-index:4;"></canvas>
+              </div>
+            </div>
+
+            <!-- Glowing simulated scan analysis modal loader -->
+            <div class="scanning-overlay" id="scanning-overlay" style="display:none;">
+              <div class="scan-laser-line"></div>
+              <div class="scanning-text">
+                <i class="fas fa-sync fa-spin" style="color:var(--accent-cyan);"></i> AI vision analyzing exam paper...
+              </div>
+              <div style="font-size:0.85rem; color:var(--text-muted); text-align:center; max-width:260px;">
+                Detecting handwritten coordinates, running OCR transcription, and checking criteria alignment.
+              </div>
+              <div class="scan-progress-bar">
+                <div class="scan-progress-fill" id="scan-progress-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right hand AI grading copilot panel -->
+          <div class="glass-panel grading-sidebar">
+            <div class="sidebar-section">
+              <h3 style="font-size:1.15rem; color:var(--text-primary); margin-bottom:1rem;">AI Grading Copilot</h3>
+              <button class="btn btn-primary" id="btn-run-ai" style="width:100%; display:flex; justify-content:center; gap:0.5rem; padding:0.8rem;">
+                <i class="fas fa-robot"></i> Run AI Paper Marker
+              </button>
+            </div>
+
+            <!-- Score stats tally -->
+            <div class="sidebar-section">
+              <div class="meta-stats">
+                <div class="mini-stat">
+                  <div class="mini-value" id="grader-sidebar-total-score">0 / 15</div>
+                  <div class="mini-label">Score Tally</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-value" id="grader-sidebar-total-percent">0%</div>
+                  <div class="mini-label">Percentage</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detected Handwriting boxes list -->
+            <div class="sidebar-section" style="flex:1; border:none; padding-bottom:0;">
+              <h4 style="font-size:0.85rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.02em;">Detected Questions</h4>
+              <div class="sidebar-list" id="grading-sidebar-questions">
+                <!-- Populates runtime questions list items -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 4. RUBRICS BUILDER VIEW -->
+      <section id="rubrics-page" class="page-section" style="display:none;">
+        <div class="page-header">
+          <div class="page-title">
+            <h1>Grading Rubrics</h1>
+            <p>Configure test templates, question prompts, maximum marks, and biological criteria.</p>
+          </div>
+        </div>
+
+        <div id="rubrics-list">
+          <!-- Populates rubrics list -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==========================================
+         INLINE GRADING MODAL DRAWER (SLIDE-IN)
+         ========================================== -->
+    <div class="grading-drawer" id="grading-drawer">
+      <div class="drawer-header">
+        <h3 id="drawer-q-label" style="font-size:1.2rem; color:var(--text-primary);">Question 1</h3>
+        <button class="drawer-close" id="btn-close-drawer"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="drawer-body">
+        
+        <!-- Handwriting raw preview -->
+        <div class="form-group">
+          <label class="form-label">Detected Student Handwriting</label>
+          <div class="handwriting-ocr-card">
+            <div class="handwriting-sample" id="drawer-handwriting-sample">Photosynthesis is how plants make food...</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:0.25rem;">
+              <span><i class="fas fa-robot"></i> OCR Confidence: <strong style="color:var(--success)">98%</strong></span>
+              <span style="color:var(--primary); cursor:pointer;"><i class="fas fa-sync"></i> Re-scan</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editable OCR Text Area -->
+        <div class="form-group">
+          <label class="form-label">OCR Transcription Correction</label>
+          <textarea class="ocr-textarea" id="drawer-ocr-text" placeholder="Transcribing handwriting..."></textarea>
+        </div>
+
+        <!-- Checklist Rubric Mapping -->
+        <div class="form-group">
+          <label class="form-label">Criteria Verification</label>
+          <div class="rubric-criteria-box" id="drawer-rubric-criteria">
+            <!-- Populates checkmarks -->
+          </div>
+        </div>
+
+        <!-- Numerical Point Adjustments -->
+        <div class="form-group">
+          <label class="form-label">Assign Marks</label>
+          <div class="grade-slider-container">
+            <input type="range" class="grade-slider" id="drawer-score-slider" min="0" max="5" value="0">
+            <input type="number" class="grade-display-input" id="drawer-score-number" min="0" max="5" value="0">
+          </div>
+        </div>
+
+        <!-- Comment section -->
+        <div class="form-group">
+          <label class="form-label">Teacher's Comments &amp; Feedback</label>
+          <textarea class="teacher-comments-area" id="drawer-comments" placeholder="Write feedback comments here..."></textarea>
+        </div>
+
+      </div>
+
+      <div class="drawer-footer">
+        <button class="btn btn-secondary" style="flex:1;" id="btn-cancel-drawer" onclick="document.getElementById('grading-drawer').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" style="flex:1.5;" id="btn-save-drawer">Save Mark</button>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         POPUP STATIC RUBRIC DETAILS MODAL
+         ========================================== -->
+    <div class="modal-overlay" id="rubric-modal">
+      <div class="glass-panel modal-card">
+        <h2 class="modal-title" id="rubric-modal-title">Biology Rubric Definition</h2>
+        
+        <div id="rubric-modal-questions" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <!-- Populates modal rubrics questions list -->
+        </div>
+
+        <div style="text-align:right;">
+          <button class="btn btn-primary" id="btn-close-rubric-modal">Close Rubric</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         GLASSMORPHIC AUTHENTICATION SCREEN OVERLAY
+         ========================================== -->
+    <div class="auth-overlay open" id="auth-overlay">
+      <div class="glass-panel auth-card">
+        
+        <!-- Brand Sidebar Panel -->
+        <div class="auth-brand-side">
+          <div class="logo-icon" style="width: 50px; height: 50px; font-size: 1.7rem; margin-bottom: 1.5rem; border-radius: 10px;">S</div>
+          <h2 style="font-size: 1.65rem; font-weight: 700; color: white; margin-bottom: 0.5rem; font-family: var(--font-heading);">SmartGrader<span style="color:var(--accent-cyan)">.ai</span></h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); max-width: 240px; margin-bottom: 1.5rem; line-height: 1.4;">
+            Intelligent handwriting recognition and semantic rubric grading for educators.
+          </p>
+          <div style="font-size:0.75rem; color:var(--text-muted); display:flex; flex-direction:column; gap:0.35rem; text-align:left;">
+            <span><i class="fas fa-check" style="color:var(--accent-cyan)"></i> Isolated teacher workspaces</span>
+            <span><i class="fas fa-check" style="color:var(--accent-cyan)"></i> Instant AI OCR paper marker</span>
+            <span><i class="fas fa-check" style="color:var(--accent-cyan)"></i> 100% Free Sandbox testing</span>
+          </div>
+        </div>
+
+        <!-- Auth Inputs Panel -->
+        <div class="auth-form-side">
+          <div class="auth-tabs">
+            <button class="auth-tab active" id="auth-tab-login">Sign In</button>
+            <button class="auth-tab" id="auth-tab-register">Create Account</button>
+          </div>
+
+          <!-- Dynamic error banner -->
+          <div class="auth-error" id="auth-error-banner">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="auth-error-text">Incorrect username or password.</span>
+          </div>
+
+          <!-- Login Form -->
+          <div id="auth-login-form" class="auth-form">
+            <div class="auth-input-group">
+              <input type="email" class="auth-input" id="login-email" placeholder="Email Address" required autocomplete="email">
+            </div>
+            <div class="auth-input-group">
+              <input type="password" class="auth-input" id="login-password" placeholder="Password" required autocomplete="current-password">
+            </div>
+            <button class="btn btn-primary" id="btn-login-submit" style="width:100%; justify-content:center; padding:0.8rem; margin-top:0.5rem;">
+              <i class="fas fa-sign-in-alt"></i> Sign In to Sandbox
+            </button>
+          </div>
+
+          <!-- Register Form -->
+          <div id="auth-register-form" class="auth-form" style="display:none;">
+            <div class="auth-input-group">
+              <input type="text" class="auth-input" id="register-name" placeholder="Full Name" required autocomplete="name">
+            </div>
+            <div class="auth-input-group">
+              <input type="email" class="auth-input" id="register-email" placeholder="Email Address" required autocomplete="email">
+            </div>
+            <div class="auth-input-group">
+              <input type="password" class="auth-input" id="register-password" placeholder="Password" required autocomplete="new-password">
+            </div>
+            <button class="btn btn-primary" id="btn-register-submit" style="width:100%; justify-content:center; padding:0.8rem; margin-top:0.5rem;">
+              <i class="fas fa-user-plus"></i> Create Free Account
+            </button>
+          </div>
+
+          <!-- Test credentials note -->
+          <div class="auth-help-note" id="auth-help-note">
+            <i class="fas fa-info-circle"></i> Test credentials pre-configured:<br>
+            <strong style="color:var(--text-primary)">prof.robertson@academy.edu</strong> / <strong style="color:var(--text-primary)">password123</strong>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- App Entry Code -->
+  <script type="module" src="app.js?v=1.2"></script>
+</body>
+</html>

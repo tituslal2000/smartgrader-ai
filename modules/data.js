@@ -3,6 +3,25 @@
  * Provides isolated databases, rubrics, subjects, and users persistence.
  */
 
+// Safe storage wrapper to prevent exceptions on Safari Private Browsing
+const memoryStorage = {};
+const safeLocalStorage = {
+  getItem: (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return memoryStorage[key] || null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      memoryStorage[key] = value;
+    }
+  }
+};
+
 // 1. Predefined Subjects (Folders)
 export const initialSubjects = [
   { id: "sub-bio", name: "Biology" },
@@ -154,9 +173,9 @@ export function getSavedState(email) {
 
   const emailClean = email.toLowerCase().trim();
   
-  const rubrics = localStorage.getItem(`sg_rubrics_${emailClean}`);
-  const students = localStorage.getItem(`sg_students_${emailClean}`);
-  const subjects = localStorage.getItem(`sg_subjects_${emailClean}`);
+  const rubrics = safeLocalStorage.getItem(`sg_rubrics_${emailClean}`);
+  const students = safeLocalStorage.getItem(`sg_students_${emailClean}`);
+  const subjects = safeLocalStorage.getItem(`sg_subjects_${emailClean}`);
 
   // Seed default students ONLY for our pre-set teacher
   let defaultStudents = [];
@@ -175,9 +194,9 @@ export function saveState(rubrics, students, subjects, email) {
   if (!email) return;
   const emailClean = email.toLowerCase().trim();
   
-  localStorage.setItem(`sg_rubrics_${emailClean}`, JSON.stringify(rubrics));
-  localStorage.setItem(`sg_students_${emailClean}`, JSON.stringify(students));
-  localStorage.setItem(`sg_subjects_${emailClean}`, JSON.stringify(subjects));
+  safeLocalStorage.setItem(`sg_rubrics_${emailClean}`, JSON.stringify(rubrics));
+  safeLocalStorage.setItem(`sg_students_${emailClean}`, JSON.stringify(students));
+  safeLocalStorage.setItem(`sg_subjects_${emailClean}`, JSON.stringify(subjects));
 }
 
 // ==========================================================================
@@ -185,7 +204,7 @@ export function saveState(rubrics, students, subjects, email) {
 // ==========================================================================
 
 export function getRegisteredUsers() {
-  const users = localStorage.getItem("sg_users");
+  const users = safeLocalStorage.getItem("sg_users");
   
   // Default master teacher account pre-loaded
   const defaultUsers = [
@@ -198,7 +217,7 @@ export function getRegisteredUsers() {
   ];
 
   if (!users) {
-    localStorage.setItem("sg_users", JSON.stringify(defaultUsers));
+    safeLocalStorage.setItem("sg_users", JSON.stringify(defaultUsers));
     return defaultUsers;
   }
 
@@ -221,6 +240,6 @@ export function registerNewUser(email, password, name) {
   };
 
   users.push(newUser);
-  localStorage.setItem("sg_users", JSON.stringify(users));
+  safeLocalStorage.setItem("sg_users", JSON.stringify(users));
   return newUser;
 }

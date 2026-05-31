@@ -13,10 +13,36 @@ import { transcribeHandwriting, analyzeAnswerWithAI } from './modules/ocr-engine
 // Otherwise (same-origin, e.g. served via port 5000 or hosted in production), use relative paths.
 const API_BASE = window.location.port === '8000' ? 'http://localhost:5000' : '';
 
+// Safe session storage wrapper to prevent crashes in iOS Safari Private mode
+const sessionMemoryStorage = {};
+const safeSessionStorage = {
+  getItem: (key) => {
+    try {
+      return sessionStorage.getItem(key);
+    } catch (e) {
+      return sessionMemoryStorage[key] || null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch (e) {
+      sessionMemoryStorage[key] = value;
+    }
+  },
+  removeItem: (key) => {
+    try {
+      sessionStorage.removeItem(key);
+    } catch (e) {
+      delete sessionMemoryStorage[key];
+    }
+  }
+};
+
 class SmartGraderApp {
   constructor() {
     // 1. Authentication & Session Check
-    const activeSession = sessionStorage.getItem("sg_active_user");
+    const activeSession = safeSessionStorage.getItem("sg_active_user");
     if (activeSession) {
       this.currentUser = JSON.parse(activeSession);
       // Load user isolated workspace data
@@ -836,7 +862,7 @@ class SmartGraderApp {
 
       // Start Session
       this.currentUser = user;
-      sessionStorage.setItem("sg_active_user", JSON.stringify(user));
+      safeSessionStorage.setItem("sg_active_user", JSON.stringify(user));
 
       // Load private database collections
       const saved = getSavedState(user.email);
@@ -901,7 +927,7 @@ class SmartGraderApp {
   // Destroys session token and returns securely to login overlay
   logoutSession() {
     if (confirm("Are you sure you want to log out of your SmartGrader workspace?")) {
-      sessionStorage.removeItem("sg_active_user");
+      safeSessionStorage.removeItem("sg_active_user");
       this.currentUser = null;
       this.rubrics = [];
       this.students = [];
@@ -926,7 +952,8 @@ class SmartGraderApp {
 
   // Triggers camera photo capture based on browser context (mobile vs laptop)
   triggerCameraCapture() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
     if (isMobile) {
       console.log("📱 Mobile device detected. Accessing native device camera...");
@@ -947,7 +974,7 @@ class SmartGraderApp {
 
     modal.classList.add('open');
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
       .then(stream => {
         this.cameraStream = stream;
         video.srcObject = stream;

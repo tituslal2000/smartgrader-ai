@@ -674,7 +674,11 @@ class SmartGraderApp {
     })
     .then(res => {
       if (!res.ok) {
-        throw new Error(`Upload failed with status: ${res.status}`);
+        return res.json().then(errData => {
+          throw new Error(errData.error || `Upload failed with status: ${res.status}`);
+        }).catch(() => {
+          throw new Error(`Upload failed with status: ${res.status}`);
+        });
       }
       return res.json();
     })
@@ -737,7 +741,7 @@ class SmartGraderApp {
     })
     .catch(err => {
       console.error("🔴 Error uploading student paper scan:", err);
-      alert(`Failed to upload paper. Please ensure the backend server is running at ${API_BASE || window.location.origin}.`);
+      alert(`Failed to upload paper:\n${err.message}\n\nPlease verify that the backend server is running at ${API_BASE || window.location.origin}.`);
     });
   }
 

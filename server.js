@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxy (e.g. Render) to correctly set req.protocol on HTTPS
+app.enable('trust proxy');
+
 // Enable CORS so frontend (port 8000) can communicate securely with backend (port 5000)
 app.use(cors());
 app.use(express.json());
@@ -83,7 +86,8 @@ app.post('/api/upload', upload.single('paper'), async (req, res) => {
     }
 
     const filePath = req.file.path;
-    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // Serve relative URL to prevent mixed content HTTP/HTTPS conflicts on reverse proxies
+    const fileUrl = `/uploads/${req.file.filename}`;
     const fileType = req.file.mimetype;
 
     // Sandbox Fallback if API key is not yet set up
@@ -145,9 +149,20 @@ app.post('/api/upload', upload.single('paper'), async (req, res) => {
     const result = await model.generateContent([prompt, imagePart]);
     const responseText = result.response.text().trim();
     
-    // Clean JSON block markers if Gemini wraps the response
-    const jsonString = responseText.replace(/```json|```/g, "").trim();
-    const transcriptions = JSON.parse(jsonString);
+    // Clean JSON block markers if Gemini wraps the response with robust regex parsing fallback
+    let transcriptions;
+    try {
+      const jsonString = responseText.replace(/```json|```/g, "").trim();
+      transcriptions = JSON.parse(jsonString);
+    } catch (e) {
+      console.warn("⚠️ JSON.parse failed on clean text, attempting regex extraction...");
+      const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (jsonMatch) {
+        transcriptions = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("Gemini returned invalid JSON structure: " + responseText);
+      }
+    }
 
     console.log("🟢 Gemini OCR successfully processed handwritten coordinates!");
 
@@ -223,8 +238,19 @@ app.post('/api/grade', async (req, res) => {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text().trim();
     
-    const jsonString = responseText.replace(/```json|```/g, "").trim();
-    const evaluation = JSON.parse(jsonString);
+    let evaluation;
+    try {
+      const jsonString = responseText.replace(/```json|```/g, "").trim();
+      evaluation = JSON.parse(jsonString);
+    } catch (e) {
+      console.warn("⚠️ JSON.parse failed on clean text in grading route, attempting regex extraction...");
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        evaluation = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("Gemini returned invalid JSON structure for grading: " + responseText);
+      }
+    }
 
     console.log(`🟢 Gemini successfully graded question! Assigned score: ${evaluation.score}`);
 

@@ -83,7 +83,7 @@ app.post('/api/upload', upload.single('paper'), async (req, res) => {
     }
 
     const filePath = req.file.path;
-    const fileUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     const fileType = req.file.mimetype;
 
     // Sandbox Fallback if API key is not yet set up

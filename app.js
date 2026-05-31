@@ -214,6 +214,56 @@ class SmartGraderApp {
         this.logoutSession();
       });
     }
+
+    // ==========================================================
+    // CAMERA AND WEBCAM CAPTURE LISTENERS
+    // ==========================================================
+    const btnBrowse = document.getElementById('btn-browse-files');
+    if (btnBrowse) {
+      btnBrowse.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('hidden-file-input').click();
+      });
+    }
+
+    const btnCameraUpload = document.getElementById('btn-camera-upload');
+    if (btnCameraUpload) {
+      btnCameraUpload.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.triggerCameraCapture();
+      });
+    }
+
+    const btnCameraRoster = document.getElementById('btn-camera-upload-roster');
+    if (btnCameraRoster) {
+      btnCameraRoster.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.triggerCameraCapture();
+      });
+    }
+
+    const nativeCameraInput = document.getElementById('camera-native-input');
+    if (nativeCameraInput) {
+      nativeCameraInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          this.ui.triggerScanningOverlay(e.target.files[0]);
+        }
+      });
+    }
+
+    const btnCloseCamera = document.getElementById('btn-close-camera');
+    if (btnCloseCamera) {
+      btnCloseCamera.addEventListener('click', () => {
+        this.stopWebcamStream();
+      });
+    }
+
+    const btnCaptureCamera = document.getElementById('btn-capture-camera');
+    if (btnCaptureCamera) {
+      btnCaptureCamera.addEventListener('click', () => {
+        this.captureWebcamSnapshot();
+      });
+    }
   }
 
   // Calculate stats for Dashboard display cards
@@ -872,6 +922,83 @@ class SmartGraderApp {
     document.getElementById('sidebar-avatar').innerText = initials;
     document.getElementById('sidebar-user-name').innerText = this.currentUser.name;
     document.getElementById('sidebar-user-role').innerText = this.currentUser.role || "Teacher / Grader";
+  }
+
+  // Triggers camera photo capture based on browser context (mobile vs laptop)
+  triggerCameraCapture() {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      console.log("📱 Mobile device detected. Accessing native device camera...");
+      const nativeInput = document.getElementById('camera-native-input');
+      if (nativeInput) nativeInput.click();
+    } else {
+      console.log("💻 Laptop/Desktop detected. Accessing browser webcam stream...");
+      this.startWebcamStream();
+    }
+  }
+
+  // Requests permission and displays the webcam stream modal
+  startWebcamStream() {
+    const modal = document.getElementById('camera-modal');
+    const video = document.getElementById('camera-stream');
+    
+    if (!modal || !video) return;
+
+    modal.classList.add('open');
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        this.cameraStream = stream;
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        console.error("🔴 Webcam access failed:", err);
+        alert("Could not access your webcam. Please verify browser permissions.");
+        this.stopWebcamStream();
+      });
+  }
+
+  // Deactivates the webcam hardware tracks and hides the modal
+  stopWebcamStream() {
+    const modal = document.getElementById('camera-modal');
+    const video = document.getElementById('camera-stream');
+    
+    if (modal) modal.classList.remove('open');
+
+    if (this.cameraStream) {
+      this.cameraStream.getTracks().forEach(track => track.stop());
+      this.cameraStream = null;
+    }
+    
+    if (video) video.srcObject = null;
+  }
+
+  // Draws video frame onto hidden canvas, converts to File blob and dispatches to scanning animation
+  captureWebcamSnapshot() {
+    const video = document.getElementById('camera-stream');
+    const canvas = document.getElementById('camera-canvas');
+    
+    if (!video || !canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    // Snapshot current stream frame
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], `camera-snapshot-${Date.now()}.png`, { type: 'image/png' });
+        
+        // Stop stream hardware
+        this.stopWebcamStream();
+
+        // Trigger uploader process
+        this.ui.triggerScanningOverlay(file);
+      }
+    }, 'image/png');
   }
 
   // Sync state to local storage database

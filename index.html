@@ -154,8 +154,12 @@
             <h3 style="font-size:1.2rem; color:var(--text-primary); margin-bottom:0.25rem;">Scan &amp; Upload Student Exam Paper</h3>
             <p style="font-size:0.85rem; color:var(--text-secondary);">Supports PDF scans, JPG, PNG high resolution handwritten papers</p>
           </div>
-          <button class="btn btn-secondary btn-sm">Browse Local Files</button>
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center; position:relative; z-index:10;">
+            <button class="btn btn-secondary btn-sm" id="btn-browse-files">Browse Local Files</button>
+            <button class="btn btn-primary btn-sm" id="btn-camera-upload"><i class="fas fa-camera"></i> Take Camera Photo</button>
+          </div>
           <input type="file" id="hidden-file-input" class="file-input-hidden" accept="image/*,application/pdf">
+          <input type="file" id="camera-native-input" accept="image/*" capture="environment" style="display:none;">
         </div>
       </section>
 
@@ -166,9 +170,12 @@
             <h1>Student Exam Papers</h1>
             <p>Select a student to manually grade or launch the visual AI Copilot marker.</p>
           </div>
-          <div>
-            <button class="btn btn-primary" onclick="document.getElementById('hidden-file-input').click()">
-              <i class="fas fa-plus"></i> Upload New Paper
+          <div style="display:flex; gap:0.75rem;">
+            <button class="btn btn-secondary" onclick="document.getElementById('hidden-file-input').click()">
+              <i class="fas fa-plus"></i> Upload Paper
+            </button>
+            <button class="btn btn-primary" id="btn-camera-upload-roster">
+              <i class="fas fa-camera"></i> Take Camera Photo
             </button>
           </div>
         </div>
@@ -396,6 +403,21 @@
 
         <div style="text-align:right;">
           <button class="btn btn-primary" id="btn-close-rubric-modal">Close Rubric</button>
+        </div>
+      </div>
+    <!-- ==========================================
+         LIVE WEBCAM STREAMING CAPTURE MODAL
+         ========================================== -->
+    <div class="modal-overlay" id="camera-modal">
+      <div class="glass-panel modal-card" style="width: 550px; max-width: 95%; display: flex; flex-direction: column; gap: 1.25rem;">
+        <h2 class="modal-title" style="display:flex; align-items:center; gap:0.5rem;"><i class="fas fa-camera" style="color:var(--accent-cyan);"></i> Live Webcam Capture</h2>
+        <div style="position:relative; width:100%; height:350px; background:#05070c; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--panel-border);">
+          <video id="camera-stream" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+          <canvas id="camera-canvas" style="display:none;"></canvas>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:1rem;">
+          <button class="btn btn-secondary" id="btn-close-camera">Cancel</button>
+          <button class="btn btn-primary" id="btn-capture-camera" style="flex:1; justify-content:center;"><i class="fas fa-shutter"></i> Capture Paper</button>
         </div>
       </div>
     </div>
